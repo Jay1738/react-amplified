@@ -1,4 +1,4 @@
-hange majorimport React, { useState } from 'react';
+import React, { useState } from 'react';
 import './App.css';
 
 // Import Amplify and Storage
