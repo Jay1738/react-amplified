@@ -1,82 +1,59 @@
-/* src/App.js */
-import React, { useEffect, useState } from 'react'
-import Amplify, { API, graphqlOperation } from 'aws-amplify'
-import { createTodo } from './graphql/mutations'
-import { listTodos } from './graphql/queries'
-import { withAuthenticator } from '@aws-amplify/ui-react'
+import React, { useState } from 'react';
+import './App.css';
 
-import awsExports from "./aws-exports";
-Amplify.configure(awsExports);
-
-const initialState = { name: '', description: '' }
+// Import Amplify and Storage
+import Amplify, { Storage } from 'aws-amplify';
+// withAuthenticator is a higher order component that wraps the application with a login page
+import { withAuthenticator } from '@aws-amplify/ui-react';
+// Import the project config files and configure them with Amplify
+import awsconfig from './aws-exports';
+Amplify.configure(awsconfig);
 
 const App = () => {
-  const [formState, setFormState] = useState(initialState)
-  const [todos, setTodos] = useState([])
+  const [imageUrl, setImageUrl] = useState(null);
+  const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    fetchTodos()
-  }, [])
-
-  function setInput(key, value) {
-    setFormState({ ...formState, [key]: value })
+  const downloadUrl = async () => {
+    // Creates download url that expires in 5 minutes/ 300 seconds
+    const downloadUrl = await Storage.get('picture.jpg', { expires: 300 });
+    window.location.href = downloadUrl
   }
 
-  async function fetchTodos() {
+  const handleChange = async (e) => {
+    const file = e.target.files[0];
     try {
-      const todoData = await API.graphql(graphqlOperation(listTodos))
-      const todos = todoData.data.listTodos.items
-      setTodos(todos)
-    } catch (err) { console.log('error fetching todos') }
-  }
-
-  async function addTodo() {
-    try {
-      if (!formState.name || !formState.description) return
-      const todo = { ...formState }
-      setTodos([...todos, todo])
-      setFormState(initialState)
-      await API.graphql(graphqlOperation(createTodo, {input: todo}))
+      setLoading(true);
+      // Upload the file to s3 with private access level. 
+      await Storage.put('picture.jpg', file, {
+        level: 'private',
+        contentType: 'image/jpg'
+      });
+      // Retrieve the uploaded file to display
+      const url = await Storage.get('picture.jpg', { level: 'private' })
+      setImageUrl(url);
+      setLoading(false);
     } catch (err) {
-      console.log('error creating todo:', err)
+      console.log(err);
     }
   }
 
   return (
-    <div style={styles.container}>
-      <h2>Amplify Todos</h2>
-      <input
-        onChange={event => setInput('name', event.target.value)}
-        style={styles.input}
-        value={formState.name}
-        placeholder="Name"
-      />
-      <input
-        onChange={event => setInput('description', event.target.value)}
-        style={styles.input}
-        value={formState.description}
-        placeholder="Description"
-      />
-      <button style={styles.button} onClick={addTodo}>Create Todo</button>
-      {
-        todos.map((todo, index) => (
-          <div key={todo.id ? todo.id : index} style={styles.todo}>
-            <p style={styles.todoName}>{todo.name}</p>
-            <p style={styles.todoDescription}>{todo.description}</p>
-          </div>
-        ))
-      }
+    <div className="App">
+      <h1> Upload an Image </h1>
+      {loading ? <h3>Uploading...</h3> : <input
+        type="file" accept='image/jpg'
+        onChange={(evt) => handleChange(evt)}
+      />}
+      <div>
+        {imageUrl ? <img style={{ width: "30rem" }} src={imageUrl} /> : <span />}
+      </div>
+      <div>
+        <h2>Download URL?</h2>
+        <button onClick={() => downloadUrl()}>Click Here!</button>
+      </div>
     </div>
-  )
+  );
 }
 
-const styles = {
-  container: { width: 400, margin: '0 auto', display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: 20 },
-  todo: {  marginBottom: 15 },
-  input: { border: 'none', backgroundColor: '#ddd', marginBottom: 10, padding: 8, fontSize: 18 },
-  todoName: { fontSize: 20, fontWeight: 'bold' },
-  todoDescription: { marginBottom: 0 },
-  button: { backgroundColor: 'black', color: 'white', outline: 'none', fontSize: 18, padding: '12px 0px' }
-}
-
-export default withAuthenticator(App)
+// withAuthenticator wraps your App with a Login component
+export default withAuthenticator(App);
