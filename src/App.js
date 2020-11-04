@@ -38,18 +38,20 @@ const App = () => {
   }
 
   return (
-    <div className="App">
-      <h1> Upload an Image </h1>
-      {loading ? <h3>Uploading...</h3> : <input
-        type="file" accept='image/jpg'
-        onChange={(evt) => handleChange(evt)}
-      />}
-      <div>
-        {imageUrl ? <img style={{ width: "30rem" }} src={imageUrl} /> : <span />}
-      </div>
-      <div>
-        <h2>Download URL?</h2>
-        <button onClick={() => downloadUrl()}>Click Here!</button>
+    <div className="Container">
+      <div className="App">
+        <h1> Upload an Image </h1>
+        {loading ? <h3>Uploading...</h3> : <input
+          type="file" accept='image/jpg'
+          onChange={(evt) => handleChange(evt)}
+        />}
+        <div>
+          {imageUrl ? <img style={{ width: "30rem" }} src={imageUrl} /> : <span />}
+        </div>
+        <div>
+          <h2>Download URL?</h2>
+          <button onClick={() => downloadUrl()}>Click Here!</button>
+        </div>
       </div>
     </div>
   );
